@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<!--  default version javafx 1.8.0.211  -->
+
+<VBox alignment="center" xmlns="http://javafx.com/javafx/1.8.0.211" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
+    <HBox fx:id="authPanel">
+        <TextField fx:id="userNameField" onAction="#tryToAuth" promptText="введите имя пользователя" HBox.hgrow="ALWAYS" />
+        <TextField fx:id="userPasswordField" onAction="#tryToAuth" promptText="введите пароль" HBox.hgrow="ALWAYS" />
+        <Button onAction="#tryToAuth">Подключиться</Button>
+        <Button onAction="#tryToRegister">Регистрация</Button>
+    </HBox>
+
+
+    <HBox VBox.vgrow="ALWAYS">
+        <TextArea fx:id="chatMessages" editable="false" focusTraversable="false" maxHeight="Infinity" wrapText="true" VBox.vgrow="ALWAYS">
+            <font>
+                <Font name="Arial" size="16.0" />
+            </font>
+            <VBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </VBox.margin>
+            <cursor>
+                <Cursor fx:constant="TEXT" />
+            </cursor></TextArea>
+        <ListView fx:id="clientsListView" minHeight="200" minWidth="150" onMouseClicked="#listClicked" />
+    </HBox>
+
+
+    <HBox fx:id="sendPanel" managed="false" visible="false">
+        <TextField fx:id="inputField" maxWidth="Infinity" onKeyPressed="#onEnter" prefHeight="36.0" HBox.hgrow="ALWAYS">
+         <HBox.margin>
+            <Insets bottom="10.0" left="10.0" right="10.0" />
+         </HBox.margin></TextField>
+        <Button fx:id="sendBtn" defaultButton="true" maxWidth="Infinity" onAction="#sendMsg" textOverrun="LEADING_ELLIPSIS" HBox.hgrow="ALWAYS">SEND
+         <font>
+            <Font name="Arial Black" size="16.0" />
+         </font>
+         <HBox.margin>
+            <Insets bottom="10.0" right="10.0" />
+         </HBox.margin>
+         <rotationAxis>
+            <Point3D />
+         </rotationAxis></Button>
+    </HBox>
+</VBox>
