@@ -25,7 +25,7 @@ public class Server {
             while (true) {
                 Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
                 System.out.println("Client is connected");
-                new ClientHandler(this, socket, connection); // 3 - Передаем параметры сервера и соединения обработчику клиета
+                new ClientHandler(this, socket, connection, statement); // 3 - Передаем параметры сервера и соединения обработчику клиета
             }
         } catch (IOException e) {
             e.printStackTrace();

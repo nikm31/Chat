@@ -4,10 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class ClientHandler {
     private Socket socket;
@@ -16,13 +13,15 @@ public class ClientHandler {
     private Server server;
     private String username;
     private Connection connection;
+    private Statement statement;
 
     public String getUsername() {
         return username;
     }
 
-    public ClientHandler(Server server, Socket socket, Connection connection) {
+    public ClientHandler(Server server, Socket socket, Connection connection, Statement statement) {
         try {
+            this.statement = statement;
             this.connection = connection;
             this.server = server;
             this.socket = socket;
@@ -171,6 +170,20 @@ public class ClientHandler {
                 socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+        if (statement != null) {
+            try {
+                statement.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
             }
         }
     }
