@@ -4,10 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class ClientHandler {
     private Socket socket;
@@ -16,13 +13,15 @@ public class ClientHandler {
     private Server server;
     private String username;
     private Connection connection;
+    private Statement statement;
 
     public String getUsername() {
         return username;
     }
 
-    public ClientHandler(Server server, Socket socket, Connection connection) {
+    public ClientHandler(Server server, Socket socket, Connection connection, Statement statement) {
         try {
+            this.statement = statement;
             this.connection = connection;
             this.server = server;
             this.socket = socket;
@@ -69,13 +68,13 @@ public class ClientHandler {
             }
             if (inputMessage.startsWith("/change ")) {
                 String[] tokens = inputMessage.split("\\s+");
-                String oldName = tokens[1];
-                String oldPassword = tokens[2];
-                String newName = tokens[3];
-                try (PreparedStatement preparedStatement = connection.prepareStatement("update users set name = ? where name = ? and password = ? ")) {
-                    preparedStatement.setString(1, newName);
-                    preparedStatement.setString(2, oldName);
-                    preparedStatement.setString(3, oldPassword);
+                String login = tokens[1];
+                String password = tokens[2];
+                String newUserName = tokens[3];
+                try (PreparedStatement preparedStatement = connection.prepareStatement("update users set username = ? where login = ? and password = ? ")) {
+                    preparedStatement.setString(1, newUserName);
+                    preparedStatement.setString(2, login);
+                    preparedStatement.setString(3, password);
                     preparedStatement.execute();
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
@@ -90,18 +89,19 @@ public class ClientHandler {
 
     private void addUserToDB(String message) {
         String[] tokens = message.split("\\s+");
-        try (PreparedStatement preparedStatement = connection.prepareStatement("select * from users where name = ? ")) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("select * from users where login = ? ")) {
             preparedStatement.setString(1, tokens[1]);
             ResultSet rs = preparedStatement.executeQuery();
             if (!rs.next()) {
-                try (PreparedStatement preparedStatement2 = connection.prepareStatement("insert into users (name, password) values (? ,?)")) {
+                try (PreparedStatement preparedStatement2 = connection.prepareStatement("insert into users (login, password, username) values (? ,? ,?)")) {
                     preparedStatement2.setString(1, tokens[1]);
                     preparedStatement2.setString(2, tokens[2]);
+                    preparedStatement2.setString(3, tokens[1]);
                     preparedStatement2.execute();
                     sendMessage("Your username: " + tokens[1] + " is registered");
                 }
             } else {
-                sendMessage("UserName: " + tokens[1] + " is exist");
+                sendMessage("login: " + tokens[1] + " is exist");
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -116,26 +116,27 @@ public class ClientHandler {
         if (message.startsWith("/auth ")) { // проверка ввода логина
             String[] tokens = message.split("\\s+"); // разбивка строки аунтефикации
             if (tokens.length == 1) {
-                sendMessage("Your did not enter username");
+                sendMessage("Your did not enter password");
                 return false;
             }
             if (tokens.length > 3) {
                 sendMessage("Your name is above 2 words");
                 return false;
             }
-            String newUsername = tokens[1]; // вычисляем имя
-            String newPassword = tokens[2]; // вычисляем пароль
-            try (PreparedStatement preparedStatement = connection.prepareStatement("select * from users where name = ? and password = ?")) {
-                preparedStatement.setString(1, newUsername);
-                preparedStatement.setString(2, newPassword);
+            String login = tokens[1]; // вычисляем имя
+            String password = tokens[2]; // вычисляем пароль
+            try (PreparedStatement preparedStatement = connection.prepareStatement("select username from users where login = ? and password = ?")) {
+                preparedStatement.setString(1, login);
+                preparedStatement.setString(2, password);
                 ResultSet rs = preparedStatement.executeQuery();
                 if (!rs.next()) {
                     sendMessage("Вы ввели не верный логин или пароль. Попробуйте снова");
                 } else {
-                    if (!server.checkUserName(this, newUsername)) { // проверка на уникальность юзера
+                    login = rs.getString("username");
+                    if (!server.checkUserName(this, login)) { // проверка на уникальность юзера
                         return true;
                     }
-                    username = newUsername;
+                    username = login;
                     sendMessage("/authOk"); // системное сообщение о успешной авторизации
                     sendMessage("/userName " + username); // системное сообщение о успешной авторизации
                     server.subscribe(this, username); // подписываем на рассылку
@@ -152,6 +153,20 @@ public class ClientHandler {
     }
 
     private void closeConnection() {
+        if (statement != null) {
+            try {
+                statement.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
         if (in != null) {
             try {
                 in.close();

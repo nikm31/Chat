@@ -25,7 +25,7 @@ public class Server {
             while (true) {
                 Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
                 System.out.println("Client is connected");
-                new ClientHandler(this, socket, connection); // 3 - Передаем параметры сервера и соединения обработчику клиета
+                new ClientHandler(this, socket, connection, statement); // 3 - Передаем параметры сервера и соединения обработчику клиета
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -35,12 +35,13 @@ public class Server {
     }
 
     public void createDB() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:sqlite:javadb.db");
+        connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
         statement = connection.createStatement();
         String sql = "create table if not exists users (\n" +
                 "id integer primary key autoincrement not null,\n" +
-                "name text not null,\n" +
-                "password text not null\n" +
+                "login text not null,\n" +
+                "password text not null,\n" +
+                "username text not null\n" +
                 ");";
         statement.executeUpdate(sql);
     }
