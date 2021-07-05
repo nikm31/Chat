@@ -76,6 +76,7 @@ public class ClientHandler {
                     preparedStatement.setString(2, login);
                     preparedStatement.setString(3, password);
                     preparedStatement.execute();
+                    server.broadcastMessage("Пользователь" + getUsername() + " сменил ник на: " + newUserName);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }
