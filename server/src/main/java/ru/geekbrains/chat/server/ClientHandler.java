@@ -12,11 +12,16 @@ public class ClientHandler {
     private DataOutputStream out;
     private Server server;
     private String username;
+    private String newUserName;
     private Connection connection;
     private Statement statement;
 
     public String getUsername() {
         return username;
+    }
+
+    public String getNewUserName() {
+        return newUserName;
     }
 
     public ClientHandler(Server server, Socket socket, Connection connection, Statement statement) {
@@ -76,6 +81,8 @@ public class ClientHandler {
                     preparedStatement.setString(2, login);
                     preparedStatement.setString(3, password);
                     preparedStatement.execute();
+                    username = newUserName;
+                    server.broadcastClientsList();
                     server.broadcastMessage("Пользователь" + getUsername() + " сменил ник на: " + newUserName);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();

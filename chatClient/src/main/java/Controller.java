@@ -34,8 +34,6 @@ public class Controller {
     @FXML
     HBox authPanel, sendPanel;
 
-    @FXML
-    VBox authPanel2;
 
     @FXML
     ListView<String> clientsListView;
