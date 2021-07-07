@@ -6,13 +6,17 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Controller {
@@ -37,7 +41,6 @@ public class Controller {
 
     @FXML
     ListView<String> clientsListView;
-
 
     public void setAuthorized(boolean authorized) {
         sendPanel.setVisible(authorized);
@@ -124,9 +127,33 @@ public class Controller {
         new Alert(Alert.AlertType.ERROR, message, ButtonType.OK).showAndWait();
     }
 
+    void showLogs(File file) {
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            List<String> lines = new ArrayList<>();
+            String a;
+            while ((a = bufferedReader.readLine()) != null) {
+                lines.add(a);
+            }
+                if (lines.size() <= 100) {
+                    for (String line : lines)
+                        chatMessages.appendText(line + "\n");
+                } else {
+                    for (int from = lines.size() - 100; from < lines.size(); from++) {
+                        chatMessages.appendText(lines.get(from) + "\n");
+                    }
+                }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void mainClientLogic() {
-        try {
+        File file = new File("history_" + userNameField.getText() + ".txt");
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file, true
+        ))) {
+            Platform.runLater(() -> {
+                showLogs(file); // выводим лог для юзера
+            });
             while (true) { // цикл авторизации
                 String inputMessage = in.readUTF();
                 if (inputMessage.equals("/authOk")) {
@@ -154,15 +181,19 @@ public class Controller {
                 }
                 Platform.runLater(() -> {
                     stage.setTitle("Your username: " + userNameField.getText()); // Выводим юзернейм в Тайтл окна
-
                 });
+                LocalTime time = LocalTime.now();
+                LocalDate date = LocalDate.now();
                 chatMessages.appendText(inputMessage + "\n"); // добавляем в чат
+                bufferedWriter.write("[ " + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " | " + time.getHour() + ":" + time.getMinute() + ":" + time.getSecond() + " ] " + inputMessage + "\n");
             }
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             e.printStackTrace();
         } finally {
             closeConnection();
         }
+
     }
 
 
@@ -204,5 +235,9 @@ public class Controller {
             }
         }
     }
+
+    public void doSystemLogs() {
+    }
+
 
 }
