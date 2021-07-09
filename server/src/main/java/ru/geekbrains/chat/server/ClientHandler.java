@@ -76,10 +76,10 @@ public class ClientHandler {
                     preparedStatement.setString(2, login);
                     preparedStatement.setString(3, password);
                     preparedStatement.execute();
-                    String oldname = username;
+                    String oldName = username;
                     username = newUserName;
                     server.broadcastClientsList();
-                    server.broadcastMessage("Пользователь " + oldname + " сменил ник на: " + username);
+                    server.broadcastMessage("Пользователь " + oldName + " сменил ник на: " + username);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }
@@ -113,6 +113,14 @@ public class ClientHandler {
     }
 
     private boolean consumeAuthorizeMessages(String message) {
+        if (statement == null & connection == null) {
+            try {
+                connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
+                statement = connection.createStatement();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
         if (message.startsWith("/register ")) {
             addUserToDB(message);
             return false;

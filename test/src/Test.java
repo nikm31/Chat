@@ -1,17 +1,22 @@
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Test {
-    public static void main(String[] args) {
-        LocalTime time = LocalTime.now().;
-        LocalDate tim2 = LocalDate.now();
-        System.out.println(tim2.toString() + time.toString());
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<String> future = executorService.submit(() -> {
+            System.out.println("Асинхронный вызов");
+            int x = 10 / 0;
+            return "Результат из потока";
+        });
+        try {
+            System.out.println("future.get() = " + future.get());
+        } catch (ExecutionException e) {
+            e.printStackTrace();
         }
+        executorService.shutdown();
 
-
-        }
-
+    }
+}

@@ -10,12 +10,10 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -127,24 +125,49 @@ public class Controller {
         new Alert(Alert.AlertType.ERROR, message, ButtonType.OK).showAndWait();
     }
 
-    void showLogs(File file) {
+
+    void showLogsFromLinkedList(File file) {
+        long timeStart = System.currentTimeMillis();
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            List<String> readList = new LinkedList<>();
+            String a;
+            while ((a = bufferedReader.readLine()) != null) {
+                readList.add(a);
+                if (readList.size() > 100) {
+                    readList.remove(0);
+                }
+            }
+            for (int i = 0; i < 100; i++) {
+                chatMessages.appendText(readList.get(i) + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        long timeStop = System.currentTimeMillis();
+        System.out.println("LinkedList time: " + (timeStop - timeStart));
+    }
+
+    void showLogsFromArrayList(File file) {
+        long timeStart = System.currentTimeMillis();
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
             List<String> lines = new ArrayList<>();
             String a;
             while ((a = bufferedReader.readLine()) != null) {
                 lines.add(a);
             }
-                if (lines.size() <= 100) {
-                    for (String line : lines)
-                        chatMessages.appendText(line + "\n");
-                } else {
-                    for (int from = lines.size() - 100; from < lines.size(); from++) {
-                        chatMessages.appendText(lines.get(from) + "\n");
-                    }
+            if (lines.size() <= 100) {
+                for (String line : lines)
+                    chatMessages.appendText(line + "\n");
+            } else {
+                for (int from = lines.size() - 100; from < lines.size(); from++) {
+                    chatMessages.appendText(lines.get(from) + "\n");
                 }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        long timeStop = System.currentTimeMillis();
+        System.out.println("ArrayList time: " + (timeStop - timeStart));
     }
 
     private void mainClientLogic() {
@@ -152,7 +175,8 @@ public class Controller {
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file, true
         ))) {
             Platform.runLater(() -> {
-                showLogs(file); // выводим лог для юзера
+                showLogsFromLinkedList(file); // вывод лога на основе LinkedList (на 20% быстрее)
+//              showLogsFromArrayList(file); // вывод лога (старая версия)
             });
             while (true) { // цикл авторизации
                 String inputMessage = in.readUTF();
@@ -234,9 +258,6 @@ public class Controller {
                 inputField.selectEnd();
             }
         }
-    }
-
-    public void doSystemLogs() {
     }
 
 
