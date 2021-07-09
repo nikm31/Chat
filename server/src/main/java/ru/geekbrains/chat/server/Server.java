@@ -1,26 +1,46 @@
 package ru.geekbrains.chat.server;
 
+import javafx.fxml.Initializable;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 
-public class Server {
+public class Server implements Initializable {
     private List<ClientHandler> clients;
     private Object StringBuilder;
     private Connection connection;
     private Statement statement;
 
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        try {
+            connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
+            statement = connection.createStatement();
+            String sql = "create table if not exists users (\n" +
+                    "id integer primary key autoincrement not null,\n" +
+                    "login text not null,\n" +
+                    "password text not null,\n" +
+                    "username text not null\n" +
+                    ");";
+            statement.executeUpdate(sql);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
     public Server() {
         try {
             this.clients = new ArrayList<>();
             ServerSocket serverSocket = new ServerSocket(8189); // 1 - Создаем соединение для подключения к серверу на порт 8189
-            createDB();
             System.out.println("Server is on");
             while (true) {
                 Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
@@ -29,21 +49,7 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
-    }
-
-    public void createDB() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
-        statement = connection.createStatement();
-        String sql = "create table if not exists users (\n" +
-                "id integer primary key autoincrement not null,\n" +
-                "login text not null,\n" +
-                "password text not null,\n" +
-                "username text not null\n" +
-                ");";
-        statement.executeUpdate(sql);
     }
 
     public synchronized void broadcastMessage(String message) {
@@ -74,13 +80,13 @@ public class Server {
         broadcastClientsList();
     }
 
-    public synchronized boolean checkUserName(ClientHandler c,String name) {
-            for (ClientHandler client : clients) {
-                if (client.getUsername().equalsIgnoreCase(name)) {
-                    c.sendMessage("Username is exist");
-                    return false;
-                }
+    public synchronized boolean checkUserName(ClientHandler c, String name) {
+        for (ClientHandler client : clients) {
+            if (client.getUsername().equalsIgnoreCase(name)) {
+                c.sendMessage("Username is exist");
+                return false;
             }
+        }
         c.sendMessage("You are lodged in");
         return true;
     }
