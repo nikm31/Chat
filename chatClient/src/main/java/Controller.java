@@ -6,13 +6,15 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 
 public class Controller {
@@ -37,7 +39,6 @@ public class Controller {
 
     @FXML
     ListView<String> clientsListView;
-
 
     public void setAuthorized(boolean authorized) {
         sendPanel.setVisible(authorized);
@@ -125,8 +126,58 @@ public class Controller {
     }
 
 
+    void showLogsFromLinkedList(File file) {
+        long timeStart = System.currentTimeMillis();
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            List<String> readList = new LinkedList<>();
+            String a;
+            while ((a = bufferedReader.readLine()) != null) {
+                readList.add(a);
+                if (readList.size() > 100) {
+                    readList.remove(0);
+                }
+            }
+            for (int i = 0; i < readList.size(); i++) {
+                chatMessages.appendText(readList.get(i) + "\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        long timeStop = System.currentTimeMillis();
+        System.out.println("LinkedList time: " + (timeStop - timeStart));
+    }
+
+    void showLogsFromArrayList(File file) {
+        long timeStart = System.currentTimeMillis();
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            List<String> lines = new ArrayList<>();
+            String a;
+            while ((a = bufferedReader.readLine()) != null) {
+                lines.add(a);
+            }
+            if (lines.size() <= 100) {
+                for (String line : lines)
+                    chatMessages.appendText(line + "\n");
+            } else {
+                for (int from = lines.size() - 100; from < lines.size(); from++) {
+                    chatMessages.appendText(lines.get(from) + "\n");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        long timeStop = System.currentTimeMillis();
+        System.out.println("ArrayList time: " + (timeStop - timeStart));
+    }
+
     private void mainClientLogic() {
-        try {
+        File file = new File("history_" + userNameField.getText() + ".txt");
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file, true
+        ))) {
+            Platform.runLater(() -> {
+                showLogsFromLinkedList(file); // вывод лога на основе LinkedList (на 20% быстрее)
+//              showLogsFromArrayList(file); // вывод лога (старая версия)
+            });
             while (true) { // цикл авторизации
                 String inputMessage = in.readUTF();
                 if (inputMessage.equals("/authOk")) {
@@ -154,11 +205,14 @@ public class Controller {
                 }
                 Platform.runLater(() -> {
                     stage.setTitle("Your username: " + userNameField.getText()); // Выводим юзернейм в Тайтл окна
-
                 });
+                LocalTime time = LocalTime.now();
+                LocalDate date = LocalDate.now();
                 chatMessages.appendText(inputMessage + "\n"); // добавляем в чат
+                bufferedWriter.write("[ " + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " | " + time.getHour() + ":" + time.getMinute() + ":" + time.getSecond() + " ] " + inputMessage + "\n");
             }
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             e.printStackTrace();
         } finally {
             closeConnection();
@@ -204,5 +258,6 @@ public class Controller {
             }
         }
     }
+
 
 }

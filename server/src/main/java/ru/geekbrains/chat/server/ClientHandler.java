@@ -1,5 +1,4 @@
 package ru.geekbrains.chat.server;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -12,16 +11,11 @@ public class ClientHandler {
     private DataOutputStream out;
     private Server server;
     private String username;
-    private String newUserName;
     private Connection connection;
     private Statement statement;
 
     public String getUsername() {
         return username;
-    }
-
-    public String getNewUserName() {
-        return newUserName;
     }
 
     public ClientHandler(Server server, Socket socket, Connection connection, Statement statement) {
@@ -32,7 +26,13 @@ public class ClientHandler {
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream()); // входящие поток
             this.out = new DataOutputStream(socket.getOutputStream());  // исходящий поток
-            new Thread(() -> mainLogic()).start(); // 4 - создаем поток для общения с клиентом
+            server.getMainCachedThreads().execute(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("Numbers of active Threads - " + Thread.getAllStackTraces().keySet().size());
+                    mainLogic();
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -60,6 +60,7 @@ public class ClientHandler {
     }
 
     private boolean consumeRegularMessages(String inputMessage) {
+
         if (inputMessage.startsWith("/")) { // если сообщение начинается с /, то пропускаем
             if (inputMessage.equals("/exit")) {
                 sendMessage("/exit");
@@ -81,9 +82,10 @@ public class ClientHandler {
                     preparedStatement.setString(2, login);
                     preparedStatement.setString(3, password);
                     preparedStatement.execute();
+                    String oldName = username;
                     username = newUserName;
                     server.broadcastClientsList();
-                    server.broadcastMessage("Пользователь" + getUsername() + " сменил ник на: " + newUserName);
+                    server.broadcastMessage("Пользователь " + oldName + " сменил ник на: " + username);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }
@@ -116,7 +118,15 @@ public class ClientHandler {
         }
     }
 
-    private boolean consumeAuthorizeMessages(String message) { //////////////////////// болеан?
+    private boolean consumeAuthorizeMessages(String message) {
+        if (statement == null & connection == null) {
+            try {
+                connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
+                statement = connection.createStatement();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
         if (message.startsWith("/register ")) {
             addUserToDB(message);
             return false;
