@@ -1,5 +1,4 @@
 package ru.geekbrains.chat.server;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -27,7 +26,13 @@ public class ClientHandler {
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream()); // входящие поток
             this.out = new DataOutputStream(socket.getOutputStream());  // исходящий поток
-            new Thread(() -> mainLogic()).start(); // 4 - создаем поток для общения с клиентом
+            server.getMainCachedThreads().execute(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("Numbers of active Threads - " + Thread.getAllStackTraces().keySet().size());
+                    mainLogic();
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -55,6 +60,7 @@ public class ClientHandler {
     }
 
     private boolean consumeRegularMessages(String inputMessage) {
+
         if (inputMessage.startsWith("/")) { // если сообщение начинается с /, то пропускаем
             if (inputMessage.equals("/exit")) {
                 sendMessage("/exit");

@@ -1,6 +1,8 @@
 package ru.geekbrains.chat.server;
 
+import com.sun.xml.internal.ws.api.model.wsdl.WSDLOutput;
 import javafx.fxml.Initializable;
+import org.w3c.dom.ls.LSOutput;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -13,12 +15,15 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server implements Initializable {
     private List<ClientHandler> clients;
     private Object StringBuilder;
     private Connection connection;
     private Statement statement;
+    private ExecutorService mainCachedThreads;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -42,14 +47,25 @@ public class Server implements Initializable {
             this.clients = new ArrayList<>();
             ServerSocket serverSocket = new ServerSocket(8189); // 1 - Создаем соединение для подключения к серверу на порт 8189
             System.out.println("Server is on");
+            mainCachedThreads = Executors.newCachedThreadPool();
             while (true) {
-                Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
-                System.out.println("Client is connected");
-                new ClientHandler(this, socket, connection, statement); // 3 - Передаем параметры сервера и соединения обработчику клиета
+                try {
+                    Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
+                            System.out.println("Client is connected");
+                            new ClientHandler(Server.this, socket, connection, statement); // 3 - Передаем параметры сервера и соединения обработчику клиета
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            mainCachedThreads.shutdown();
         }
+    }
+
+    public ExecutorService getMainCachedThreads() {
+        return mainCachedThreads;
     }
 
     public synchronized void broadcastMessage(String message) {

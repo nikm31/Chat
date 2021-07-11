@@ -137,7 +137,7 @@ public class Controller {
                     readList.remove(0);
                 }
             }
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < readList.size(); i++) {
                 chatMessages.appendText(readList.get(i) + "\n");
             }
         } catch (IOException e) {
@@ -217,7 +217,6 @@ public class Controller {
         } finally {
             closeConnection();
         }
-
     }
 
 

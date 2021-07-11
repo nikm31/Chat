@@ -1,22 +1,31 @@
+import java.awt.*;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class Test {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        Future<String> future = executorService.submit(() -> {
-            System.out.println("Асинхронный вызов");
-            int x = 10 / 0;
-            return "Результат из потока";
+        Random random = new Random();
+        int[] randomNumbers = {4,1,6,8,5,0,2,9,3,7};
+        System.out.println(Arrays.toString(randomNumbers));
+
+        Queue<Integer> queue = new PriorityQueue<>(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return o2.compareTo(o1);
+            }
         });
-        try {
-            System.out.println("future.get() = " + future.get());
-        } catch (ExecutionException e) {
-            e.printStackTrace();
+
+        for (int i = 0; i < randomNumbers.length; i++) {
+            queue.add(randomNumbers[i]);
+            if (queue.size() > 5) {
+                queue.remove();
+            }
         }
-        executorService.shutdown();
+        for (int i = 0; i < 5; i++) {
+            Integer in = queue.poll();
+            System.out.println("отсортировано " + in);
+        }
 
     }
 }
+
