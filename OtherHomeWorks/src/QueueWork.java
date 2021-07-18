@@ -2,7 +2,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-public class Test {
+public class QueueWork {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         Random random = new Random();
         int[] randomNumbers = {4,1,6,8,5,0,2,9,3,7};

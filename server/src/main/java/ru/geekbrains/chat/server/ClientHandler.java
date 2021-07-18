@@ -1,4 +1,7 @@
 package ru.geekbrains.chat.server;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,6 +16,7 @@ public class ClientHandler {
     private String username;
     private Connection connection;
     private Statement statement;
+    private static final Logger LOGGER = LogManager.getLogger(ClientHandler.class.getName());
 
     public String getUsername() {
         return username;
@@ -29,12 +33,13 @@ public class ClientHandler {
             server.getMainCachedThreads().execute(new Runnable() {
                 @Override
                 public void run() {
-                    System.out.println("Numbers of active Threads - " + Thread.getAllStackTraces().keySet().size());
+                    LOGGER.trace("Текущее количество запущенных потоков" +  Thread.getAllStackTraces().keySet().size());
                     mainLogic();
                 }
             });
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         }
     }
 
@@ -43,6 +48,7 @@ public class ClientHandler {
             out.writeUTF(message); // отправляем сообщение клиенту
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         }
     }
 
@@ -52,6 +58,7 @@ public class ClientHandler {
             while (consumeRegularMessages(in.readUTF())) ;    // цикл рассылки сообщений
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } finally {
             System.out.println("Client " + username + " is now Offline");
             server.unSubscribe(this, username); // если клиент вышел
@@ -88,6 +95,7 @@ public class ClientHandler {
                     server.broadcastMessage("Пользователь " + oldName + " сменил ник на: " + username);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
+                    LOGGER.error(throwables.getMessage());
                 }
             }
             return true;
@@ -115,6 +123,7 @@ public class ClientHandler {
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            LOGGER.error(throwables.getMessage());
         }
     }
 
@@ -162,6 +171,7 @@ public class ClientHandler {
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
+                LOGGER.error(ex.getMessage());
             }
             return false;
         } else {
@@ -176,6 +186,7 @@ public class ClientHandler {
                 statement.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
+                LOGGER.error(throwables.getMessage());
             }
         }
         if (connection != null) {
@@ -183,6 +194,7 @@ public class ClientHandler {
                 connection.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
+                LOGGER.error(throwables.getMessage());
             }
         }
         if (in != null) {
@@ -190,6 +202,7 @@ public class ClientHandler {
                 in.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
         if (out != null) {
@@ -197,6 +210,7 @@ public class ClientHandler {
                 out.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
         if (socket != null) {
@@ -204,6 +218,7 @@ public class ClientHandler {
                 socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
     }

@@ -1,32 +1,30 @@
 package ru.geekbrains.chat.server;
 
-import com.sun.xml.internal.ws.api.model.wsdl.WSDLOutput;
-import javafx.fxml.Initializable;
-import org.w3c.dom.ls.LSOutput;
-
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Server implements Initializable {
+
+public class Server {
     private List<ClientHandler> clients;
-    private Object StringBuilder;
     private Connection connection;
     private Statement statement;
     private ExecutorService mainCachedThreads;
+    private static final Logger LOGGER = LogManager.getLogger(Server.class.getName());
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
+
+    public Server() {
         try {
             connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
             statement = connection.createStatement();
@@ -39,10 +37,8 @@ public class Server implements Initializable {
             statement.executeUpdate(sql);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            LOGGER.error(throwables.getMessage());
         }
-    }
-
-    public Server() {
         try {
             this.clients = new ArrayList<>();
             ServerSocket serverSocket = new ServerSocket(8189); // 1 - Создаем соединение для подключения к серверу на порт 8189
@@ -51,7 +47,7 @@ public class Server implements Initializable {
             while (true) {
                 try {
                     Socket socket = serverSocket.accept(); // 2 - Ждем подключения клиента
-                            System.out.println("Client is connected");
+                            LOGGER.info("New client is connected to Server");
                             new ClientHandler(Server.this, socket, connection, statement); // 3 - Передаем параметры сервера и соединения обработчику клиета
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -59,8 +55,10 @@ public class Server implements Initializable {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } finally {
             mainCachedThreads.shutdown();
+            LOGGER.info("Сервер успешно завершил работу");
         }
     }
 
@@ -94,6 +92,7 @@ public class Server implements Initializable {
         clients.remove(c); // удаляем клиента
         broadcastMessage("User is logged out: " + name);
         broadcastClientsList();
+        LOGGER.info("User is logged out: " + name);
     }
 
     public synchronized boolean checkUserName(ClientHandler c, String name) {
@@ -104,6 +103,7 @@ public class Server implements Initializable {
             }
         }
         c.sendMessage("You are lodged in");
+        LOGGER.info("User is connected to chat: " + name);
         return true;
     }
 
