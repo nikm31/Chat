@@ -1,4 +1,6 @@
 package ru.geekbrains.chat.server;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -12,16 +14,12 @@ public class ClientHandler {
     private DataOutputStream out;
     private Server server;
     private String username;
-    private String newUserName;
     private Connection connection;
     private Statement statement;
+    private static final Logger LOGGER = LogManager.getLogger(ClientHandler.class.getName());
 
     public String getUsername() {
         return username;
-    }
-
-    public String getNewUserName() {
-        return newUserName;
     }
 
     public ClientHandler(Server server, Socket socket, Connection connection, Statement statement) {
@@ -32,9 +30,16 @@ public class ClientHandler {
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream()); // входящие поток
             this.out = new DataOutputStream(socket.getOutputStream());  // исходящий поток
-            new Thread(() -> mainLogic()).start(); // 4 - создаем поток для общения с клиентом
+            server.getMainCachedThreads().execute(new Runnable() {
+                @Override
+                public void run() {
+                    LOGGER.trace("Текущее количество запущенных потоков" +  Thread.getAllStackTraces().keySet().size());
+                    mainLogic();
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         }
     }
 
@@ -43,6 +48,7 @@ public class ClientHandler {
             out.writeUTF(message); // отправляем сообщение клиенту
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         }
     }
 
@@ -52,6 +58,7 @@ public class ClientHandler {
             while (consumeRegularMessages(in.readUTF())) ;    // цикл рассылки сообщений
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } finally {
             System.out.println("Client " + username + " is now Offline");
             server.unSubscribe(this, username); // если клиент вышел
@@ -60,6 +67,7 @@ public class ClientHandler {
     }
 
     private boolean consumeRegularMessages(String inputMessage) {
+
         if (inputMessage.startsWith("/")) { // если сообщение начинается с /, то пропускаем
             if (inputMessage.equals("/exit")) {
                 sendMessage("/exit");
@@ -81,11 +89,13 @@ public class ClientHandler {
                     preparedStatement.setString(2, login);
                     preparedStatement.setString(3, password);
                     preparedStatement.execute();
+                    String oldName = username;
                     username = newUserName;
                     server.broadcastClientsList();
-                    server.broadcastMessage("Пользователь" + getUsername() + " сменил ник на: " + newUserName);
+                    server.broadcastMessage("Пользователь " + oldName + " сменил ник на: " + username);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
+                    LOGGER.error(throwables.getMessage());
                 }
             }
             return true;
@@ -113,10 +123,19 @@ public class ClientHandler {
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            LOGGER.error(throwables.getMessage());
         }
     }
 
-    private boolean consumeAuthorizeMessages(String message) { //////////////////////// болеан?
+    private boolean consumeAuthorizeMessages(String message) {
+        if (statement == null & connection == null) {
+            try {
+                connection = DriverManager.getConnection("jdbc:sqlite:chatdb.db");
+                statement = connection.createStatement();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
         if (message.startsWith("/register ")) {
             addUserToDB(message);
             return false;
@@ -152,6 +171,7 @@ public class ClientHandler {
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
+                LOGGER.error(ex.getMessage());
             }
             return false;
         } else {
@@ -166,6 +186,7 @@ public class ClientHandler {
                 statement.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
+                LOGGER.error(throwables.getMessage());
             }
         }
         if (connection != null) {
@@ -173,6 +194,7 @@ public class ClientHandler {
                 connection.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
+                LOGGER.error(throwables.getMessage());
             }
         }
         if (in != null) {
@@ -180,6 +202,7 @@ public class ClientHandler {
                 in.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
         if (out != null) {
@@ -187,6 +210,7 @@ public class ClientHandler {
                 out.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
         if (socket != null) {
@@ -194,6 +218,7 @@ public class ClientHandler {
                 socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                LOGGER.error(e.getMessage());
             }
         }
     }
